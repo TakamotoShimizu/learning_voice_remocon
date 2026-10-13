@@ -17,7 +17,7 @@ pigpio を導入し、pigpio daemon を起動してからビルドします。
 
 ```sh
 sudo apt update
-sudo apt install pigpio libpigpio-dev g++ make
+sudo apt install pigpio libpigpio-dev libsqlite3-dev g++ make
 sudo systemctl enable --now pigpiod
 make
 ```
@@ -27,25 +27,30 @@ make
 ## 使い方
 
 ```sh
-# GPIO 17 の受信モジュールで「電源」信号を学習
-sudo ./learningremote learn 電源
-
-# GPIO 13・19・26 の送信回路から同時に信号を送る
-sudo ./learningremote send 電源
-
-# 信号を 3 回送る（間隔 150 ms）
-sudo ./learningremote send 電源 --repeat 3 --gap 150
-
-# 登録済みの信号を表示
-./learningremote list
+sudo ./learningremote
 ```
 
-データは実行ディレクトリの `codes.txt` に保存します。別ファイルを使う場合は `--db FILE` を付けます。学習は最大 30 秒待ちます。時間を変えるには `--timeout SEC` を指定します。
+起動後、プロンプトでコマンドを入力します。`quit` で終了します。`delete` は指定信号を削除し、`allclear` は指定したデータベースの学習内容をすべて消去します。
+
+```text
+learningremote> learn 電源
+learningremote> send 電源
+learningremote> send 電源 --repeat 3 --gap 150
+learningremote> delete 電源
+learningremote> list
+learningremote> allclear
+learningremote> quit
+```
+
+データはSQLiteデータベースとして実行ディレクトリの `codes.db` に保存します。別ファイルを使う場合は `--db FILE` を付けます。学習は最大 30 秒待ちます。時間を変えるには `--timeout SEC` を指定します。
+`allclear --db livingroom.txt` のように指定すると、そのファイルの学習内容を消去できます。
+従来のテキスト形式の `codes.txt` が残っている場合は、初回アクセス時に内容を `codes.db` へ移行し、元ファイルを `codes.txt.legacy` に退避します。
 
 ```sh
-sudo ./learningremote learn エアコン冷房 --db livingroom.txt --timeout 60
-sudo ./learningremote send エアコン冷房 --db livingroom.txt
+sudo ./learningremote
 ```
+
+起動後の入力例: `learn エアコン冷房 --db livingroom.txt --timeout 60`、`send エアコン冷房 --db livingroom.txt`。
 
 ## 接続例
 
@@ -57,6 +62,9 @@ sudo ./learningremote send エアコン冷房 --db livingroom.txt
 
 ## 保存形式と制約
 
-`codes.txt` は `名前|時間_us,時間_us,...` 形式です。学習した波形をそのまま再生する方式なので、機器によっては長押しの繰り返しやエアコンの状態を含む信号を完全に再現できないことがあります。学習時はボタンを短く一度押してください。送信搬送波は約 38 kHz 固定です。
+`codes.db` 内のSQLite `ir_signals` テーブルに信号名、マーク・スペース時間列、繰り返し回数、ギャップ時間を保存します。学習した波形をそのまま再生する方式なので、機器によっては長押しの繰り返しやエアコンの状態を含む信号を完全に再現できないことがあります。学習時はボタンを短く一度押してください。送信搬送波は約 38 kHz 固定です。
 
 pigpio の波形生成により送信します。Pi Zero 2 W では GPIO 番号と pigpio の導入状況を確認してください。OS の更新で pigpio が動かない場合、このプログラムも動作しません。
+
+## Enhancement
+機能拡張については、[機能拡張](./spec.md)を参照のこと。
